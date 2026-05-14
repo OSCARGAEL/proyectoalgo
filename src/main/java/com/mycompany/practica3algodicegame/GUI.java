@@ -1,330 +1,338 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- */
-
 package com.mycompany.practica3algodicegame;
 
 import javafx.application.Application;
-import javafx.stage.Stage;
-
-/**
- *
- * @author HP
- */
-import javafx.application.Application;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
 import javafx.stage.Stage;
 
-import java.util.ArrayList;
-import java.util.List;
-
+// Interfaz grafica del juego Number Match
 public class GUI extends Application {
 
-    private Simulador simulador;
+    private Juego juego;
 
-    private Label etiquetaTurno;
-    private Label etiquetaClientesEnSistema;
-    private Label etiquetaActividad;
-    private Label etiquetaEstadoSimulacion;
+    private GridPane tableroVisual;
+    private Label etiquetaInformacion;
 
-    private Button botonIniciar;
-    private Button botonAccionTurno;
-    private Button botonReiniciar;
+    private TextField campoFilas;
+    private TextField campoColumnas;
 
-    private List<FlowPane> panelesCirculosPorFila;
-    private List<Label> etiquetasCantidadPorFila;
-    private List<Label> etiquetasDadoPorFila;
+    private Node nodoSeleccionadoUno;
 
-    private int numeroFilas;
-    private boolean simulacionIniciada;
+    private Node nodoPistaUno;
+    private Node nodoPistaDos;
 
-    // Inicializa los valores principales de la interfaz.
-    public GUI() {
-        simulador = new Simulador();
-        panelesCirculosPorFila = new ArrayList<>();
-        etiquetasCantidadPorFila = new ArrayList<>();
-        etiquetasDadoPorFila = new ArrayList<>();
-        numeroFilas = 10;
-        simulacionIniciada = false;
-    }
-
-    // Inicia la aplicacion JavaFX y construye la ventana principal.
+    // Inicia la aplicacion JavaFX
     @Override
-    public void start(Stage ventana) {
-        BorderPane panelPrincipal = construirInterfaz();
+    public void start(Stage escenarioPrincipal) {
 
-        Scene escena = new Scene(panelPrincipal, 1450, 760);
-        ventana.setTitle("Simulador de Linea de Produccion");
-        ventana.setScene(escena);
-        ventana.show();
+        tableroVisual = new GridPane();
+        tableroVisual.setHgap(5);
+        tableroVisual.setVgap(5);
+        tableroVisual.setAlignment(Pos.CENTER);
 
-        mostrarFilasVacias();
-    }
+        etiquetaInformacion = new Label("Configura el tablero e inicia una partida.");
 
-    // Construye toda la interfaz principal del programa.
-    public BorderPane construirInterfaz() {
-        BorderPane panelPrincipal = new BorderPane();
+        campoFilas = new TextField("4");
+        campoColumnas = new TextField("10");
 
-        Label titulo = new Label("Simulador de Linea de Produccion");
-        titulo.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
+        restringirCampoANumeros(campoFilas);
+        restringirCampoANumeros(campoColumnas);
 
-        HBox panelBotones = crearPanelBotones();
-        VBox encabezado = new VBox(10, titulo, panelBotones);
-        encabezado.setAlignment(Pos.CENTER);
-        encabezado.setPadding(new Insets(15));
+        Button botonIniciar = new Button("Iniciar");
+        Button botonPista = new Button("Pista");
+        Button botonDeshacer = new Button("Deshacer");
 
-        GridPane panelFilas = crearPanelFilas();
-        VBox panelMetricas = crearPanelMetricas();
+        botonIniciar.setOnAction(e -> iniciarPartidaConConfiguracion());
 
-        panelPrincipal.setTop(encabezado);
-        panelPrincipal.setCenter(panelFilas);
-        panelPrincipal.setRight(panelMetricas);
+        botonPista.setOnAction(e -> mostrarPistaEnEtiqueta());
 
-        return panelPrincipal;
-    }
+        botonDeshacer.setOnAction(e -> deshacerMovimiento());
 
-    // Crea el panel visual que contiene todas las filas.
-    public GridPane crearPanelFilas() {
-        GridPane panelFilas = new GridPane();
-        panelFilas.setHgap(15);
-        panelFilas.setVgap(15);
-        panelFilas.setAlignment(Pos.TOP_CENTER);
-        panelFilas.setPadding(new Insets(20));
+        HBox panelSuperior = new HBox(10);
 
-        for (int i = 1; i <= numeroFilas; i++) {
-            VBox panelUnaFila = crearPanelUnaFila("Fila " + i);
-            int columna = (i - 1) % 5;
-            int fila = (i - 1) / 5;
-            panelFilas.add(panelUnaFila, columna, fila);
-        }
+        panelSuperior.setAlignment(Pos.CENTER);
 
-        return panelFilas;
-    }
-
-    // Crea el panel visual de una sola fila.
-    public VBox crearPanelUnaFila(String nombreFila) {
-        Label etiquetaNombre = new Label(nombreFila);
-        etiquetaNombre.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-
-        Label etiquetaDado = new Label("Dado: 0");
-        Label etiquetaCantidad = new Label("Cantidad: 0");
-
-        FlowPane panelCirculos = crearContenedorClientes();
-
-        panelesCirculosPorFila.add(panelCirculos);
-        etiquetasCantidadPorFila.add(etiquetaCantidad);
-        etiquetasDadoPorFila.add(etiquetaDado);
-
-        VBox panelUnaFila = new VBox(18, etiquetaNombre, etiquetaDado, panelCirculos, etiquetaCantidad);
-        panelUnaFila.setAlignment(Pos.TOP_CENTER);
-        panelUnaFila.setPadding(new Insets(16));
-        panelUnaFila.setPrefWidth(220);
-        panelUnaFila.setMinHeight(280);
-        panelUnaFila.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-background-color: #f4f4f4;");
-
-        return panelUnaFila;
-    }
-
-    // Crea un contenedor flexible donde se dibujaran los clientes de cada fila.
-    public FlowPane crearContenedorClientes() {
-        FlowPane contenedor = new FlowPane();
-        contenedor.setHgap(5);
-        contenedor.setVgap(5);
-        contenedor.setAlignment(Pos.CENTER);
-        contenedor.setPrefWrapLength(125);
-        contenedor.setMinHeight(140);
-        contenedor.setPrefHeight(140);
-        return contenedor;
-    }
-
-    // Crea el panel donde se muestran las metricas principales.
-    public VBox crearPanelMetricas() {
-        Label tituloMetricas = new Label("Metricas");
-        tituloMetricas.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-
-        etiquetaTurno = new Label("Turno: 0 / 20");
-        etiquetaClientesEnSistema = new Label("Clientes en sistema: 0");
-        etiquetaActividad = new Label("Actividad: 0.00 %");
-        etiquetaEstadoSimulacion = new Label("Estado: Esperando inicio");
-
-        VBox panelMetricas = new VBox(
-                15,
-                tituloMetricas,
-                etiquetaTurno,
-                etiquetaClientesEnSistema,
-                etiquetaActividad,
-                etiquetaEstadoSimulacion
+        panelSuperior.getChildren().addAll(
+                new Label("Filas:"),
+                campoFilas,
+                new Label("Columnas:"),
+                campoColumnas,
+                botonIniciar,
+                botonPista,
+                botonDeshacer
         );
 
-        panelMetricas.setPadding(new Insets(20));
-        panelMetricas.setPrefWidth(260);
-        panelMetricas.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-background-color: #eaeaea;");
+        BorderPane raiz = new BorderPane();
 
-        return panelMetricas;
+        raiz.setTop(panelSuperior);
+        raiz.setCenter(tableroVisual);
+        raiz.setBottom(etiquetaInformacion);
+
+        BorderPane.setAlignment(etiquetaInformacion, Pos.CENTER);
+
+        Scene escena = new Scene(raiz, 1080, 720);
+
+        escenarioPrincipal.setTitle("Number Match");
+        escenarioPrincipal.setScene(escena);
+        escenarioPrincipal.show();
     }
 
-    // Crea el panel de botones para controlar la simulacion.
-    public HBox crearPanelBotones() {
-        botonIniciar = new Button("Iniciar");
-        botonAccionTurno = new Button("Girar");
-        botonReiniciar = new Button("Reiniciar");
+    // Restringe un TextField solo a numeros
+    private void restringirCampoANumeros(TextField campoTexto) {
 
-        botonAccionTurno.setDisable(true);
-        botonReiniciar.setDisable(true);
+        campoTexto.textProperty().addListener((observable, valorAnterior, valorNuevo) -> {
 
-        botonIniciar.setOnAction(e -> iniciarSimulacion());
-        botonAccionTurno.setOnAction(e -> ejecutarAccionTurno());
-        botonReiniciar.setOnAction(e -> reiniciarSimulacion());
-
-        HBox panelBotones = new HBox(10, botonIniciar, botonAccionTurno, botonReiniciar);
-        panelBotones.setAlignment(Pos.CENTER);
-
-        return panelBotones;
-    }
-
-    // Inicializa la simulacion y actualiza la interfaz.
-    public void iniciarSimulacion() {
-        simulador.inicializarSimulacion(numeroFilas);
-        simulacionIniciada = true;
-        actualizarInterfaz();
-
-        botonIniciar.setDisable(true);
-        botonAccionTurno.setDisable(false);
-        botonAccionTurno.setText("Girar");
-        botonReiniciar.setDisable(false);
-        etiquetaEstadoSimulacion.setText("Estado: Simulacion en ejecucion");
-    }
-
-    // Ejecuta la fase actual del turno, ya sea girar o mover.
-    public void ejecutarAccionTurno() {
-        if (!simulador.estanDadosGirados()) {
-            simulador.girarDados();
-            botonAccionTurno.setText("Mover");
-            etiquetaEstadoSimulacion.setText("Estado: Dados girados");
-        } else {
-            simulador.moverSegunDados();
-            botonAccionTurno.setText("Girar");
-            etiquetaEstadoSimulacion.setText("Estado: Clientes movidos");
-        }
-
-        actualizarInterfaz();
-
-        if (simulador.simulacionTerminada()) {
-            botonAccionTurno.setDisable(true);
-            etiquetaEstadoSimulacion.setText("Estado: Simulacion finalizada");
-        }
-    }
-
-    // Reinicia la simulacion conservando la configuracion actual.
-    public void reiniciarSimulacion() {
-        simulador.reiniciarSimulacion();
-        simulacionIniciada = true;
-        actualizarInterfaz();
-
-        botonAccionTurno.setDisable(false);
-        botonAccionTurno.setText("Girar");
-        etiquetaEstadoSimulacion.setText("Estado: Simulacion reiniciada");
-    }
-
-    // Muestra todas las filas visualmente vacias antes de iniciar la simulacion.
-    public void mostrarFilasVacias() {
-        for (int i = 0; i < panelesCirculosPorFila.size(); i++) {
-            dibujarFilaVacia(panelesCirculosPorFila.get(i));
-            etiquetasCantidadPorFila.get(i).setText("Cantidad: 0");
-            etiquetasDadoPorFila.get(i).setText("Dado: 0");
-        }
-    }
-
-    // Dibuja una fila vacia sin clientes visibles.
-    public void dibujarFilaVacia(FlowPane panelCirculos) {
-        panelCirculos.getChildren().clear();
-    }
-
-    // Actualiza todas las partes visuales de la interfaz.
-    public void actualizarInterfaz() {
-        if (!simulacionIniciada) {
-            mostrarFilasVacias();
-            actualizarMetricas();
-            return;
-        }
-
-        actualizarVisualFilas();
-        actualizarMetricas();
-    }
-
-    // Actualiza los clientes visibles, las cantidades y los dados de cada fila.
-    public void actualizarVisualFilas() {
-        List<Fila> filas = simulador.obtenerListaFilas();
-
-        for (int i = 0; i < panelesCirculosPorFila.size(); i++) {
-            if (i < filas.size()) {
-                Fila filaActual = filas.get(i);
-                List<Cliente> clientesVisibles = filaActual.obtenerClientesVisibles(filaActual.obtenerCantidadClientesEnCola());
-
-                dibujarClientesFila(panelesCirculosPorFila.get(i), clientesVisibles);
-                etiquetasCantidadPorFila.get(i).setText("Cantidad: " + filaActual.obtenerCantidadClientesEnCola());
-                etiquetasDadoPorFila.get(i).setText("Dado: " + filaActual.obtenerValorDado());
-            } else {
-                dibujarFilaVacia(panelesCirculosPorFila.get(i));
-                etiquetasCantidadPorFila.get(i).setText("Cantidad: 0");
-                etiquetasDadoPorFila.get(i).setText("Dado: 0");
+            if (!valorNuevo.matches("\\d*")) {
+                campoTexto.setText(valorNuevo.replaceAll("[^\\d]", ""));
             }
-        }
+        });
     }
 
-    // Dibuja unicamente los clientes reales sin circulos vacios.
-    public void dibujarClientesFila(FlowPane panelCirculos, List<Cliente> clientesVisibles) {
-        panelCirculos.getChildren().clear();
+    // Inicia una partida usando la configuracion indicada
+    private void iniciarPartidaConConfiguracion() {
 
-        for (Cliente cliente : clientesVisibles) {
-            Circle circulo = crearCirculoCliente(cliente);
-            panelCirculos.getChildren().add(circulo);
-        }
-    }
+        if (campoFilas.getText().isEmpty() ||
+                campoColumnas.getText().isEmpty()) {
 
-    // Crea un circulo visual que representa un cliente.
-    public Circle crearCirculoCliente(Cliente cliente) {
-        Circle circulo = new Circle(7);
-
-        if (cliente.esClienteNuevo()) {
-            circulo.setFill(Color.DODGERBLUE);
-            circulo.setStroke(Color.DARKBLUE);
-        } else {
-            circulo.setFill(Color.GRAY);
-            circulo.setStroke(Color.DIMGRAY);
-        }
-
-        circulo.setStrokeWidth(0.5);
-
-        return circulo;
-    }
-
-    // Actualiza las metricas generales del sistema.
-    public void actualizarMetricas() {
-        if (!simulacionIniciada) {
-            etiquetaTurno.setText("Turno: 0 / " + simulador.obtenerTurnoMaximo());
-            etiquetaClientesEnSistema.setText("Clientes en sistema: 0");
-            etiquetaActividad.setText("Actividad: 0.00 %");
+            etiquetaInformacion.setText("Ingresa filas y columnas.");
             return;
         }
 
-        etiquetaTurno.setText("Turno: " + simulador.obtenerTurnoActual() + " / " + simulador.obtenerTurnoMaximo());
-        etiquetaClientesEnSistema.setText("Clientes en sistema: " + simulador.obtenerTotalClientesEnSistema());
-        etiquetaActividad.setText(String.format("Actividad: %.2f %%", simulador.calcularActividadSistema()));
+        int filas = Integer.parseInt(campoFilas.getText());
+        int columnas = Integer.parseInt(campoColumnas.getText());
+
+        if (filas < 4 || columnas < 10) {
+            etiquetaInformacion.setText("Minimo 4 filas y 10 columnas.");
+            return;
+        }
+
+        if (filas > 15 || columnas > 20) {
+            etiquetaInformacion.setText("Limite excedido.");
+            return;
+        }
+
+        juego = new Juego(filas, columnas);
+        juego.iniciarNuevaPartida();
+
+        nodoSeleccionadoUno = null;
+        nodoPistaUno = null;
+        nodoPistaDos = null;
+
+        actualizarVistaCompleta();
+
+        etiquetaInformacion.setText("Partida iniciada.");
     }
 
-    // Lanza la aplicacion JavaFX.
+    // Reinicia la partida actual
+    private void reiniciarPartida() {
+
+        if (juego == null) {
+            return;
+        }
+
+        juego.iniciarNuevaPartida();
+
+        nodoSeleccionadoUno = null;
+        nodoPistaUno = null;
+        nodoPistaDos = null;
+
+        actualizarVistaCompleta();
+
+        etiquetaInformacion.setText("Partida reiniciada.");
+    }
+
+    // Actualiza visualmente todo el tablero
+    private void actualizarVistaCompleta() {
+
+        tableroVisual.setDisable(false);
+        tableroVisual.getChildren().clear();
+
+        if (juego == null) {
+            return;
+        }
+
+        Tablero tablero = juego.obtenerTableroJuego();
+
+        for (Node nodoActual : tablero.obtenerNodosDelTablero()) {
+
+            int fila =
+                    tablero.obtenerFilaDeNodo(nodoActual);
+
+            int columna =
+                    tablero.obtenerColumnaDeNodo(nodoActual);
+
+            Button botonNodo = new Button();
+
+            botonNodo.setMinSize(50, 50);
+
+            if (tablero.verificarSiNodoEstaEliminado(nodoActual)) {
+
+                botonNodo.setText("");
+                botonNodo.setDisable(true);
+
+            } else {
+
+                botonNodo.setText(
+                        String.valueOf(nodoActual.getNumber()));
+
+                botonNodo.setOnAction(
+                        e -> manejarSeleccionDeNodo(nodoActual));
+            }
+
+            if (nodoActual == nodoSeleccionadoUno) {
+
+                botonNodo.setStyle(
+                        "-fx-border-color: blue; " +
+                                "-fx-border-width: 3;"
+                );
+            }
+
+            if (nodoActual == nodoPistaUno ||
+                    nodoActual == nodoPistaDos) {
+
+                botonNodo.setStyle(
+                        "-fx-border-color: green; " +
+                                "-fx-border-width: 3; " +
+                                "-fx-text-fill: green;"
+                );
+            }
+
+            tableroVisual.add(
+                    botonNodo,
+                    columna,
+                    fila
+            );
+        }
+
+        if (juego.verificarSiYaNoHayMovimientosDisponibles()) {
+
+            etiquetaInformacion.setText(
+                    "Juego terminado. Ya no hay movimientos."
+            );
+
+            desactivarTablero();
+        }
+    }
+
+    // Maneja la seleccion de nodos
+    private void manejarSeleccionDeNodo(Node nodoActual) {
+
+        nodoPistaUno = null;
+        nodoPistaDos = null;
+
+        if (nodoSeleccionadoUno == null) {
+
+            nodoSeleccionadoUno = nodoActual;
+
+            actualizarVistaCompleta();
+
+            return;
+        }
+
+        Node nodoSeleccionadoDos = nodoActual;
+
+        boolean movimientoRealizado =
+                juego.realizarMovimientoEntreNodos(
+                        nodoSeleccionadoUno,
+                        nodoSeleccionadoDos
+                );
+
+        if (movimientoRealizado) {
+
+            etiquetaInformacion.setText(
+                    "Movimiento realizado. Concordancias: "
+                            + juego.obtenerTotalConcordanciasEncontradas()
+                            + " | Pendientes: "
+                            + juego.contarConcordanciasPendientesEnTablero()
+            );
+
+        } else {
+
+            etiquetaInformacion.setText(
+                    "Movimiento invalido."
+            );
+        }
+
+        nodoSeleccionadoUno = null;
+
+        actualizarVistaCompleta();
+    }
+
+    // Muestra una pista disponible
+    private void mostrarPistaEnEtiqueta() {
+
+        if (juego == null) {
+            return;
+        }
+
+        Pista pistaDisponible =
+                juego.buscarPistaDisponibleEnTablero();
+
+        if (pistaDisponible == null) {
+
+            etiquetaInformacion.setText(
+                    "No hay pistas disponibles."
+            );
+
+            return;
+        }
+
+        nodoPistaUno =
+                pistaDisponible.obtenerNodoUno();
+
+        nodoPistaDos =
+                pistaDisponible.obtenerNodoDos();
+
+        actualizarVistaCompleta();
+
+        etiquetaInformacion.setText(
+                "Pista encontrada."
+        );
+    }
+
+    // Deshace el ultimo movimiento
+    private void deshacerMovimiento() {
+
+        if (juego == null) {
+            return;
+        }
+
+        boolean resultado =
+                juego.deshacerUltimoMovimientoRealizado();
+
+        if (resultado) {
+
+            etiquetaInformacion.setText(
+                    "Movimiento deshecho."
+            );
+
+        } else {
+
+            etiquetaInformacion.setText(
+                    "No hay movimientos para deshacer."
+            );
+        }
+
+        nodoSeleccionadoUno = null;
+        nodoPistaUno = null;
+        nodoPistaDos = null;
+
+        actualizarVistaCompleta();
+    }
+
+    // Desactiva el tablero visual
+    private void desactivarTablero() {
+
+        tableroVisual.setDisable(true);
+    }
+
+    // Metodo principal
     public static void main(String[] args) {
         launch(args);
     }
